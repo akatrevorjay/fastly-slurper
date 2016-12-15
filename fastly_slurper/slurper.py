@@ -14,11 +14,11 @@ from os.path import join
 import requests
 from pystatsd import Client as StatsdClient
 
-
 import six
 
 
 class Statsd(StatsdClient):
+
     def __init__(self, address=('localhost', 8125), prefix=None, verbose=True):
         self.verbose = verbose
         super(Statsd, self).__init__(address[0], address[1], prefix)
@@ -35,7 +35,8 @@ class Statsd(StatsdClient):
         if self.verbose:
             sys.stderr.write(
                 '{now} [{type}] {stat} {value}\n'.format(
-                    now=datetime.now(), type=type,
+                    now=datetime.now(),
+                    type=type,
                     stat=stat if self.prefix is None else '.'.join((self.prefix, stat)),
                     value=value,
                 )
@@ -55,10 +56,11 @@ class Fastly(requests.Session):
         })
 
     def request(self, method, url, **kwargs):
-        return super(Fastly, self).request(method=method, url=self.base+url, **kwargs)
+        return super(Fastly, self).request(method=method, url=self.base + url, **kwargs)
 
 
 class RecorderWorker(threading.Thread):
+
     def __init__(self, client, publisher, service, delay=1.0):
         super(RecorderWorker, self).__init__()
         self.daemon = True
