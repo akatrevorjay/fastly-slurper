@@ -1,4 +1,5 @@
-click
-pystatsd==0.1.10
-requests
 six
+requests
+click
+pystatsd
+statsd
