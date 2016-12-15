@@ -2,7 +2,7 @@
 fastly_slurper.cli
 ~~~~~~~~~~~~~~~~~~
 
-:copyright: (c) 2015 Disqus, Inc.
+:copyright: (c) 2016 Disqus, Inc.
 :license: Apache, see LICENSE for more details.
 """
 import click
