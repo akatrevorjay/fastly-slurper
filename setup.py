@@ -89,6 +89,6 @@ _conf = dict(
     ],
 )
 
-_conf.update(setup_requirements(install_combined=True))
+_conf.update(setup_requirements())
 
 setup(**_conf)

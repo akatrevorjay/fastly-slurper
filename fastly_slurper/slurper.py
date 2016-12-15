@@ -15,6 +15,9 @@ import requests
 from pystatsd import Client as StatsdClient
 
 
+import six
+
+
 class Statsd(StatsdClient):
     def __init__(self, address=('localhost', 8125), prefix=None, verbose=True):
         self.verbose = verbose
@@ -83,8 +86,8 @@ class RecorderWorker(threading.Thread):
     def record_stats(self, message):
         for stats in message:
             if 'datacenter' in stats:
-                for dc, dcstats in stats['datacenter'].iteritems():
-                    for stat, val in dcstats.iteritems():
+                for dc, dcstats in six.iteritems(stats['datacenter']):
+                    for stat, val in six.iteritems(dcstats):
                         if stat == 'miss_histogram':
                             continue
 
