@@ -112,5 +112,5 @@ class RecorderWorker(threading.Thread):
             except Exception:
                 log.exception('Failed slurp for ts=%s; exception follows:', ts)
 
-            if time() <= ts - self.delay:
+            if time() <= ts + self.delay:
                 sleep(self.delay)
