@@ -6,6 +6,7 @@ fastly_slurper.cli
 :license: Apache, see LICENSE for more details.
 """
 import click
+from . import slurper
 
 
 def make_services(ctx, param, value):
@@ -31,12 +32,10 @@ def make_netaddr(ctx, param, value):
 @click.option('--api-key', required=True)
 @click.option('--verbose', default=False, is_flag=True)
 def slurper(delay, statsd, services, prefix, api_key, verbose):
-    from .slurper import Fastly, Statsd, RecorderWorker
-
-    client = Fastly(api_key)
-    publisher = Statsd(statsd, prefix, verbose)
+    client = slurper.Fastly(api_key)
+    publisher = slurper.Statsd(statsd, prefix, verbose)
     for service in services:
-        RecorderWorker(client, publisher, service, delay).start()
+        slurper.RecorderWorker(client, publisher, service, delay).start()
 
     from time import sleep
     try:
