@@ -5,17 +5,19 @@ fastly_slurper.slurper
 :copyright: (c) 2016 Disqus, Inc.
 :license: Apache, see LICENSE for more details.
 """
-from __future__ import absolute_import, division, generators, nested_scopes, print_function, unicode_literals, \
-    with_statement
+from __future__ import (absolute_import, division, generators, nested_scopes,
+                        print_function, unicode_literals, with_statement)
 
-from datetime import datetime
-from os.path import join
-from time import time, sleep
 import logging
-import requests
-import six
 import sys
 import threading
+from datetime import datetime
+from os.path import join
+from time import sleep, time
+
+import requests
+import six
+
 import pystatsd
 
 from . import __version__

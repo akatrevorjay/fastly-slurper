@@ -6,11 +6,12 @@ fastly-slurper
 :copyright: (c) 2016 Disqus, Inc.
 :license: Apache, see LICENSE for more details.
 """
-from setuptools import setup, find_packages
-from pip.req import parse_requirements
-from pip.download import PipSession
 import glob
 import os
+
+from pip.download import PipSession
+from pip.req import parse_requirements
+from setuptools import find_packages, setup
 
 
 def setup_requirements(pattern='requirements/*.txt', install_combined=False):

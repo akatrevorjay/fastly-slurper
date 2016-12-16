@@ -5,11 +5,12 @@ fastly_slurper.cli
 :copyright: (c) 2016 Disqus, Inc.
 :license: Apache, see LICENSE for more details.
 """
-import click
 import logging
-
 from time import sleep
-from . import slurper, __version__
+
+import click
+
+from . import __version__, slurper
 
 log = logging.getLogger(__name__)
 
@@ -53,9 +54,9 @@ def slurper(delay, statsd, services, prefix, api_key, verbose):
     log.info('Spawning slurpers (%d)', len(workers))
     [w.start() for w in workers]
 
-    log.info('Waiting for workers (%d) to complete', len(workers))
+    log.info('Waiting on workers (%d) to complete', len(workers))
     [w.join() for w in workers]
 
 
 def main():
-    slurper(auto_envvar_prefix='SLURPER')
+    return slurper(auto_envvar_prefix='SLURPER')
