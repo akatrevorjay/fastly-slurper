@@ -6,8 +6,6 @@ fastly_slurper.cli
 :license: Apache, see LICENSE for more details.
 """
 import logging
-from time import sleep
-
 import click
 
 from . import __version__, slurper
