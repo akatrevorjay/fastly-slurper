@@ -9,16 +9,14 @@ from __future__ import (absolute_import, division, generators, nested_scopes,
                         print_function, unicode_literals, with_statement)
 
 import logging
-import sys
 import threading
-from datetime import datetime
-from os.path import join
-from time import sleep, time
-
 import requests
 import six
 
-import pystatsd
+from datetime import datetime
+from os.path import join
+from time import sleep, time
+from pystatsd import Client as StatsdClient
 
 from . import __version__
 

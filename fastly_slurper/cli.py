@@ -47,7 +47,7 @@ def slurper(delay, statsd, services, prefix, api_key, verbose):
     log.info('Fastly slurper v%s', __version__)
 
     client = slurper.Fastly(api_key)
-    publisher = slurper.Statsd(statsd, prefix)
+    publisher = slurper.StatsdClient(statsd, prefix)
 
     workers = [slurper.RecorderWorker(client, publisher, service, delay) for service in services]
 
