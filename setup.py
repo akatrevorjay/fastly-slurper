@@ -3,7 +3,7 @@
 fastly-slurper
 ~~~~~~~~~~~~~~
 
-:copyright: (c) 2016 Disqus, Inc.
+:copyright: (c) 2017 Disqus, Inc.
 :license: Apache, see LICENSE for more details.
 """
 import glob
@@ -82,7 +82,7 @@ _conf = dict(
     zip_safe=False,
     entry_points={
         'console_scripts': [
-            'fastly-slurper = fastly_slurper.cli:main',
+            'fastly-slurper = fastly_slurper.__main__:main',
         ],
     },
     classifiers=[

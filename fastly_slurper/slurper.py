@@ -2,7 +2,7 @@
 fastly_slurper.slurper
 ~~~~~~~~~~~~~~~~~~~~~~
 
-:copyright: (c) 2016 Disqus, Inc.
+:copyright: (c) 2017 Disqus, Inc.
 :license: Apache, see LICENSE for more details.
 """
 from __future__ import (absolute_import, division, generators, nested_scopes,
@@ -12,11 +12,7 @@ import logging
 import threading
 import requests
 import six
-
-from datetime import datetime
-from os.path import join
-from time import sleep, time
-from pystatsd import Client as StatsdClient
+import time
 
 from . import __version__
 
@@ -31,9 +27,9 @@ class Fastly(requests.Session):
     user_agent = _USER_AGENT
 
     def __init__(self, api_key, *args, **kwargs):
-        self.api_key = api_key
-
         super(Fastly, self).__init__(*args, **kwargs)
+
+        self.api_key = api_key
 
         self.headers.update({
             'Fastly-Key': self.api_key,
@@ -41,7 +37,6 @@ class Fastly(requests.Session):
         })
 
     def _ensure_abs_url(self, url):
-        # ensure abs
         if '://' not in url:
             url = '%s%s' % (self.base, url)
         return url
@@ -52,65 +47,96 @@ class Fastly(requests.Session):
 
 
 class RecorderWorker(threading.Thread):
+    daemon = True
 
     def __init__(self, client, publisher, service, delay=1.0):
         super(RecorderWorker, self).__init__()
-        self.daemon = True
-
         self.client = client
         self.publisher = publisher
         self.name, self.channel = service
         self.delay = delay
 
-    def timing(self, stat, time):
-        stat = '%s.%s' % (self.name, stat)
-        return self.publisher.timing(stat, time)
-
-    def gauge(self, stat, time):
-        stat = '%s.%s' % (self.name, stat)
-        return self.publisher.gauge(stat, time)
-
     def url_for_timestamp(self, ts):
-        # Convert timestamp to str and remove the decimal
-        strts = ('%.9f' % ts).translate(None, '.')
-        return join('channel', self.channel, 'ts', strts)
+        strts = '%.9f' % ts
+        strts = strts.replace('.', '')
+        return '/'.join(['channel', self.channel, 'ts', strts])
 
-    def get_stats(self, ts):
-        response = self.client.get(self.url_for_timestamp(ts)).json()
-        return response['Data']
+    def fetch(self, ts):
+        url = self.url_for_timestamp(ts)
+        return self.client.get(url)
 
-    def record_stats(self, message):
-        for stats in message:
-            if 'datacenter' in stats:
-                for dc, dcstats in six.iteritems(stats['datacenter']):
-                    for stat, val in six.iteritems(dcstats):
-                        if stat == 'miss_histogram':
-                            continue
+    def unwrap_resp(self, resp):
+        # data data data
+        data = resp.json()
+        data = data['Data']
+        # data
+        return data
 
-                        if stat.endswith('_time'):
-                            t = stat.split('_')[0]
-                            if dcstats[t]:
-                                val = val / dcstats[t] * 1000
+    def parse(self, iterable, skip_keys=['miss_histogram']):
+        for stats in iterable:
+            dc = stats.get('datacenter')
+            if not dc:
+                continue
 
-                        stat_name = '%s.%s' % (dc, stat)
-                        self.timing(stat_name, val)
+            for dc_name, dc_stats in six.iteritems(dc):
+                for k, v in six.iteritems(dc_stats):
+                    if k in skip_keys:
+                        continue
 
-                self.gauge('last_record', int(time()))
+                    if k.endswith('_time'):
+                        kpart = k.rsplit('_', 1)[0]
 
-    def run(self):
-        self.running = True
+                        # TODO Wat
+                        if dc_stats.get(kpart):
+                            v = v / dc_stats[kpart] * 1000
 
-        while self.running:
-            ts = time()
+                    k = '%s.%s' % (dc_name, k)
+                    yield k, v
+
+    def record(self, iterable):
+        cnt = 0
+        for k, v in iterable:
+            k = '%s.%s' % (self.name, k)
+            v = int(v)
+            self.publisher.timing(k, v)
+            cnt += 1
+
+        self.publisher.gauge('last_record', time.time())
+        return cnt
+
+    def run(self, next_at=0):
+        self.commit_seppuku = False
+        while not self.commit_seppuku:
+            remaining = time.time() - next_at
+            if next_at and remaining > 0:
+                log.debug('Delaying remaining=%s secs', remaining)
+                time.sleep(remaining)
+
+            ts = time.time()
+            next_at = ts + self.delay
+
+            log.debug('Slurping for timestamp=%s next_at=%s', ts, next_at)
+
+            resp = self.fetch(ts)
+            if not resp.ok:
+                log.error('Failed to fetch stats for ts=%s resp=%s', ts, resp)
+                continue
 
             try:
-                log.debug('Fetching stats for ts=%s'.ts)
-                stats = self.get_stats(ts)
-
-                log.info('Recording stats for ts=%s: %r', ts, stats)
-                self.record_stats(stats)
+                data = self.unwrap_resp(resp)
+                stats = dict(self.parse(data))
             except Exception:
-                log.exception('Failed slurp for ts=%s; exception follows:', ts)
+                log.exception('Failed to parse stats for ts=%s resp=%s:', ts, resp)
+                continue
 
-            if time() <= ts + self.delay:
-                sleep(self.delay)
+            try:
+                cnt = self.record(six.iteritems(stats))
+            except Exception:
+                log.exception('Failed to record stats=%s for ts=%s resp=%s', stats, ts, resp)
+                continue
+
+            log.info('Sent %d stats for ts=%s next_at=%s', cnt, ts, next_at)
+
+    def seppuku(self):
+        log.warn('Committing seppuku after this round. We all have a time, and my time is now.')
+        self.commit_seppuku = True
