@@ -85,13 +85,10 @@ def cli(ctx, delay, statsd_addr, services, prefix, api_key, workers_per_service,
             continue
 
         log.error('Oh no! A thread has DIED! Telling remaining children to commit seppuku.')
+        [w.seppuku() for w in workers]
+        break
 
-        for w in workers:
-            if not w.isAlive():
-                [w.seppuku() for w in workers]
-
-        log.error('Waiting for children to do as they were told.')
-
-        [w.join() for w in workers]
+    log.error('Waiting for children.')
+    [w.join() for w in workers]
 
     log.info('Done')
